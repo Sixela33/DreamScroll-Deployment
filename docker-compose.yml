@@ -1,0 +1,52 @@
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16
+    container_name: dreamscroll_postgres
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  
+  # ── NestJS Backend ──────────────────────────────────────────
+  backend:
+    image: s1x3l4/dreamscroll-backend:latest
+    container_name: dreamscroll_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  # ── React Frontend (nginx) ─────────────────────────────────
+  frontend:
+    image: s1x3l4/dreamscroll-frontend:latest
+    container_name: dreamscroll_frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: dreamscroll_data
