@@ -21,8 +21,6 @@ services:
       timeout: 5s
       retries: 5
 
-
-  
   # ── NestJS Backend ──────────────────────────────────────────
   backend:
     image: s1x3l4/dreamscroll-backend:latest
@@ -43,10 +41,26 @@ services:
     container_name: dreamscroll_frontend
     depends_on:
       - backend
+    restart: unless-stopped
+
+  # ── Caddy (reverse proxy + automatic HTTPS) ────────────────
+  caddy:
+    image: caddy:2
+    container_name: dreamscroll_caddy
+    depends_on:
+      - frontend
     ports:
       - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     restart: unless-stopped
 
 volumes:
   postgres_data:
     name: dreamscroll_data
+  caddy_data:
+  caddy_config:
